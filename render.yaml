@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: abc-system-backend
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: ALGO_MNEMONIC
+        sync: false
+      - key: ALGOD_URL
+        value: https://testnet-api.algonode.cloud
+      - key: APP_ID
+        value: 758381248
