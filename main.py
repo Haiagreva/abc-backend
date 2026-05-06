@@ -131,8 +131,28 @@ async def analyze_post(req: AnalyzeRequest):
             }]
         )
         import json
-        raw = message.content[0].text.replace("```json", "").replace("```", "").strip()
-        result = json.loads(raw)
+        import re
+
+        raw = message.content[0].text.strip()
+
+        print("RAW CLAUDE RESPONSE:")
+        print(raw)
+
+        # Remove markdown fences safely
+        raw = raw.replace("```json", "").replace("```", "").strip()
+
+        # Extract first JSON object only
+        match = re.search(r'\{.*\}', raw, re.DOTALL)
+
+        if not match:
+            raise Exception(f"No JSON object found in Claude response: {raw}")
+
+        json_text = match.group(0)
+
+        try:
+            result = json.loads(json_text)
+        except Exception as parse_error:
+            raise Exception(f"JSON parse failed: {parse_error} | Raw response: {raw}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"AI analysis failed: {str(e)}")
 
