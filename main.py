@@ -1,3 +1,4 @@
+print("GROQ VERSION DEPLOYED")
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -38,7 +39,7 @@ sender_addr   = account.address_from_private_key(private_key)
 
 # ── Groq setup (OpenAI-compatible) ─────────────────────────────
 ai_client = OpenAI(
-    #api_key=os.getenv("GROQ_API_KEY"),
+    api_key=os.getenv("GROQ_API_KEY"),
     base_url="https://api.groq.com/openai/v1"
 )
 
@@ -203,4 +204,7 @@ def get_stats():
         return {"app_id": ALGO_APP_ID, "global_state": global_state}
     except Exception as e:
         return {"error": str(e)}
+
+
+
 print("GROQ VERSION DEPLOYED")
