@@ -5,7 +5,7 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
     envVars:
-      - key: ANTHROPIC_API_KEY
+      - key: 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
         sync: false
       - key: ALGO_MNEMONIC
         sync: false

@@ -1,7 +1,7 @@
-import anthropic
+''' import anthropic
 
 client = anthropic.Anthropic(
-    api_key="YOUR_ANTHROPIC_API_KEY_HERE"
+    api_key="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"
 )
 
 response = client.messages.create(
@@ -12,4 +12,4 @@ response = client.messages.create(
     ]
 )
 
-print(response.content[0].text)
+print(response.content[0].text)'''
