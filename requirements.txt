@@ -1,8 +1,8 @@
-fastapi==0.115.0
-uvicorn==0.30.6
-py-algorand-sdk==2.7.0
-pyteal==0.26.1
-anthropic==0.34.2
-python-dotenv==1.0.1
-pydantic==2.9.2
-httpx==0.27.2
+fastapi
+uvicorn
+py-algorand-sdk
+pyteal
+python-dotenv
+pydantic
+httpx
+openai

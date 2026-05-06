@@ -1,9 +1,12 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-import anthropic
+from openai import OpenAI
 import os
 import hashlib
+import traceback
+import json
+import re
 import base64
 from algosdk.v2client import algod
 from algosdk import transaction, mnemonic, account
@@ -33,8 +36,11 @@ ALGO_APP_ID   = int(os.getenv("APP_ID", "0"))
 private_key   = mnemonic.to_private_key(ALGO_MNEMONIC)
 sender_addr   = account.address_from_private_key(private_key)
 
-# ── Anthropic setup ─────────────────────────────────────────────
-ai_client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+# ── Groq setup (OpenAI-compatible) ─────────────────────────────
+ai_client = OpenAI(
+    api_key=os.getenv("GROQ_API_KEY"),
+    base_url="https://api.groq.com/openai/v1"
+)
 
 SYSTEM_PROMPT = """You are a fake news detection AI specialized in Indian political news.
 Analyze the given post and return ONLY a JSON object with these exact fields:
@@ -121,40 +127,39 @@ def health():
 async def analyze_post(req: AnalyzeRequest):
     # 1. Run AI analysis
     try:
-        message = ai_client.messages.create(
-            model="claude-sonnet-4-20250514",
-            max_tokens=1000,
-            system=SYSTEM_PROMPT,
-            messages=[{
-                "role": "user",
-                "content": f"Analyze this Indian political news post:\n\n\"{req.content}\""
-            }]
+        response = ai_client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {
+                    "role": "system",
+                    "content": SYSTEM_PROMPT
+                },
+                {
+                    "role": "user",
+                    "content": f'Analyze this Indian political news post:\n\n"{req.content}"'
+                }
+            ],
+            temperature=0.2
         )
-        import json
-        import re
 
-        raw = message.content[0].text.strip()
+        raw = response.choices[0].message.content
 
-        print("RAW CLAUDE RESPONSE:")
+        print("RAW GROQ RESPONSE:")
         print(raw)
 
-        # Remove markdown fences safely
-        raw = raw.replace("```json", "").replace("```", "").strip()
+        raw = raw.strip()
 
-        # Extract first JSON object only
         match = re.search(r'\{.*\}', raw, re.DOTALL)
 
         if not match:
-            raise Exception(f"No JSON object found in Claude response: {raw}")
+            raise Exception(f"No JSON found: {raw}")
 
         json_text = match.group(0)
 
-        try:
-            result = json.loads(json_text)
-        except Exception as parse_error:
-            raise Exception(f"JSON parse failed: {parse_error} | Raw response: {raw}")
+        result = json.loads(json_text)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"AI analysis failed: {str(e)}")
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
 
     score   = int(result.get("score", 0))
     verdict = result.get("verdict", "UNKNOWN")
