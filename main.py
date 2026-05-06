@@ -17,12 +17,21 @@ load_dotenv()
 
 app = FastAPI(title="ABC System Backend")
 
-# Allow requests from React frontend (localhost dev + GitHub Pages)
+# Allow requests from frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "https://haiagreva.github.io",
+        "http://localhost:3000"
+    ],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+)
+
+ai_client = OpenAI(
+    api_key=os.getenv("GROQ_API_KEY"),
+    base_url="https://api.groq.com/openai/v1"
 )
 
 # ── Algorand setup ──────────────────────────────────────────────
@@ -36,12 +45,6 @@ ALGO_MNEMONIC = os.getenv("ALGO_MNEMONIC")
 ALGO_APP_ID   = int(os.getenv("APP_ID", "0"))
 private_key   = mnemonic.to_private_key(ALGO_MNEMONIC)
 sender_addr   = account.address_from_private_key(private_key)
-
-# ── Groq setup (OpenAI-compatible) ─────────────────────────────
-ai_client = OpenAI(
-    api_key=os.getenv("GROQ_API_KEY"),
-    base_url="https://api.groq.com/openai/v1"
-)
 
 SYSTEM_PROMPT = """You are a fake news detection AI specialized in Indian political news.
 Analyze the given post and return ONLY a JSON object with these exact fields:
