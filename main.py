@@ -28,8 +28,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.get("/")
+def root():
+    return {"status": "ok"}
+
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+
+if not GROQ_API_KEY:
+    raise Exception("GROQ_API_KEY missing")
+
 ai_client = OpenAI(
-    api_key=os.getenv("GROQ_API_KEY"),
+    api_key=GROQ_API_KEY,
     base_url="https://api.groq.com/openai/v1"
 )
 
@@ -42,8 +51,12 @@ algod_client = algod.AlgodClient(
 
 ALGO_MNEMONIC = os.getenv("ALGO_MNEMONIC")
 ALGO_APP_ID   = int(os.getenv("APP_ID", "0"))
-private_key   = mnemonic.to_private_key(ALGO_MNEMONIC)
-sender_addr   = account.address_from_private_key(private_key)
+
+def get_algo_account():
+    """Derive private key and address from mnemonic."""
+    pk = mnemonic.to_private_key(ALGO_MNEMONIC)
+    addr = account.address_from_private_key(pk)
+    return pk, addr
 
 SYSTEM_PROMPT = """You are a fake news detection AI specialized in Indian political news.
 Analyze the given post and return ONLY a JSON object with these exact fields:
@@ -78,6 +91,7 @@ class AnalyzeResponse(BaseModel):
 def record_flag_on_chain(post_hash: str, account_id: str, score: int, verdict: str) -> str:
     """Submit a flag record transaction to the ABC smart contract."""
     try:
+        private_key, sender_addr = get_algo_account()
         sp = algod_client.suggested_params()
 
         txn = transaction.ApplicationCallTxn(
@@ -106,15 +120,12 @@ def record_flag_on_chain(post_hash: str, account_id: str, score: int, verdict: s
 
 
 # ── Routes ──────────────────────────────────────────────────────
-@app.get("/")
-def root():
-    return {"status": "ABC System backend running", "app_id": ALGO_APP_ID}
-
 
 @app.get("/health")
 def health():
     try:
         status = algod_client.status()
+        _, sender_addr = get_algo_account()
         return {
             "status": "ok",
             "algorand": "connected",
@@ -207,6 +218,8 @@ def get_stats():
     except Exception as e:
         return {"error": str(e)}
 
-
-
 print("GROQ VERSION DEPLOYED")
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
